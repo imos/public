@@ -50,7 +50,7 @@ class Executor(threading.Thread):
                     p.returncode = 0
                 extra_info = b""
                 if p.returncode != 0:
-                    extra_info = b"\n"+stdout
+                    extra_info = b"\n"+stdout+stderr
                 self.__collector.put("[%s] %s (%s)%s" % (
                     "SUCCESS" if p.returncode == 0 else "FAILED",
                     item["file"], line.decode("utf-8"),
