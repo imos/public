@@ -1,9 +1,10 @@
 import argparse
-import glob
-import queue
 import re
 import subprocess
 import threading
+import fnmatch
+import os
+import six.moves.queue as queue
 
 
 class Collector(threading.Thread):
@@ -46,7 +47,7 @@ class Executor(threading.Thread):
                 line = re.sub(b"=*$", b"", line)
                 line = line.strip()
                 if re.match(
-                        rb"^\d+ deselected in \d+(\.\d+)? seconds$", line):
+                        b'^\\d+ deselected in \\d+(\\.\\d+)? seconds$', line):
                     p.returncode = 0
                 extra_info = b""
                 if p.returncode != 0:
@@ -60,9 +61,17 @@ class Executor(threading.Thread):
             pass
 
 
+def recursive_glob(directory):
+    files = []
+    for root, dirs, fs in os.walk(directory):
+        for f in fnmatch.filter(fs, 'test_*.py'):
+            files.append(os.path.join(root, f))
+    return files
+
+
 def main(args):
     tests = queue.Queue()
-    for f in glob.glob(args.filter, recursive=True):
+    for f in recursive_glob(args.directory):
         tests.put({
             "file": f,
             "command": args.pytest + " " + f,
@@ -75,11 +84,16 @@ def main(args):
         thread.join()
     collector.put(None, False)
     collector.join()
-    exit(1 if collector.is_failure else 0)
+    if collector.is_failure:
+        print("test failed")
+        exit(1)
+    else:
+        print("test succeeded")
+        exit(0)
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--filter", default="**/test_*.py")
+parser.add_argument("--directory", default=".")
 parser.add_argument("--pytest", default="pytest -m 'not slow and not gpu'")
 parser.add_argument("--threads", type=int, default=8)
 main(parser.parse_args())
