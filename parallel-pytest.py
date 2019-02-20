@@ -4,6 +4,7 @@ import subprocess
 import threading
 import fnmatch
 import os
+import sys
 import six.moves.queue as queue
 
 
@@ -20,6 +21,7 @@ class Collector(threading.Thread):
             if line is None:
                 break
             print(line)
+            sys.stdout.flush()
 
     def put(self, line, is_failure):
         self.__output.put(line)
