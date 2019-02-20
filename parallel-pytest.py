@@ -63,17 +63,27 @@ class Executor(threading.Thread):
             pass
 
 
-def recursive_glob(directory):
+def recursive_glob(hint, directory):
     files = []
+    seen = {}
+    if hint != "":
+        with open(hint) as f:
+            for file in f:
+                file = file.strip()
+                if os.path.exists(file):
+                    files.append(file)
+                    seen[file] = True
     for root, dirs, fs in os.walk(directory):
         for f in fnmatch.filter(fs, 'test_*.py'):
-            files.append(os.path.join(root, f))
+            file = os.path.join(root, f)
+            if file not in seen:
+                files.append(os.path.join(root, f))
     return files
 
 
 def main(args):
     tests = queue.Queue()
-    for f in recursive_glob(args.directory):
+    for f in recursive_glob(args.hint, args.directory):
         tests.put({
             "file": f,
             "command": args.pytest + " " + f,
@@ -95,6 +105,7 @@ def main(args):
 
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--hint", default="")
 parser.add_argument("--directory", default=".")
 parser.add_argument("--pytest", default="pytest -m 'not slow and not gpu'")
 parser.add_argument("--threads", type=int, default=8)
