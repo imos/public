@@ -48,8 +48,13 @@ class Executor(threading.Thread):
                 line = re.sub(b"^=*", b"", line)
                 line = re.sub(b"=*$", b"", line)
                 line = line.strip()
+                # For pytest.
                 if re.match(
                         b'^\\d+ deselected in \\d+(\\.\\d+)? seconds$', line):
+                    p.returncode = 0
+                # For pytest-xdist.
+                if re.match(
+                        b'^no tests ran in \\d+(\\.\\d+)? seconds$', line):
                     p.returncode = 0
                 extra_info = b""
                 if p.returncode != 0:
